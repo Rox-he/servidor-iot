@@ -2,9 +2,11 @@ const express = require('express');
 const os = require('os');
 const admin = require('firebase-admin');
 
+// Carga la clave privada desde la variable de entorno
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
-  credential: admin.credential.applicationDefault(), // O usa .cert si tienes el JSON
+  credential: admin.credential.cert(serviceAccount),
 });
 
 const db = admin.firestore();
@@ -34,10 +36,21 @@ app.post('/post-data', async (req, res) => {
   console.log('Datos recibidos:', req.body);
 
   try {
+    if (!api_key || !value1 || !value2) {
+      return res.status(400).send('Faltan datos necesarios');
+    }
+
+    const temperatura = parseFloat(value1);
+    const humedad = parseFloat(value2);
+
+    if (isNaN(temperatura) || isNaN(humedad)) {
+      return res.status(400).send('Valores no válidos para temperatura o humedad');
+    }
+
     const docRef = await db.collection("sensores").add({
       api_key,
-      temperatura: parseFloat(value1),
-      humedad: parseFloat(value2),
+      temperatura,
+      humedad,
       timestamp: new Date()
     });
 
