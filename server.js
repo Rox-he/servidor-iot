@@ -1,7 +1,13 @@
 const express = require('express');
 const os = require('os');
-const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, addDoc } = require('firebase/firestore');
+const admin = require('firebase-admin');
+
+
+admin.initializeApp({
+  credential: admin.credential.applicationDefault(), // O usa .cert si tienes el JSON
+});
+
+const db = admin.firestore();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,28 +26,15 @@ function getLocalIp() {
 
 const HOST = getLocalIp();
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAdzmiurz2tNKbMgxeMSkp62IM0Ac_f9AM",
-  authDomain: "practica07-72fb3.firebaseapp.com",
-  projectId: "practica07-72fb3",
-  storageBucket: "practica07-72fb3.firebasestorage.app",
-  messagingSenderId: "399077174446",
-  appId: "1:399077174446:web:03d0d8b25c1022799a513f"
-};
-
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
-
-app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.post('/post-data', async (req, res) => {
-  const { api_key, value1, value2} = req.body;
+  const { api_key, value1, value2 } = req.body;
 
   console.log('Datos recibidos:', req.body);
 
   try {
-    const docRef = await addDoc(collection(db, "sensores"), {
+    const docRef = await db.collection("sensores").add({
       api_key,
       temperatura: parseFloat(value1),
       humedad: parseFloat(value2),
@@ -49,13 +42,13 @@ app.post('/post-data', async (req, res) => {
     });
 
     console.log('Documento insertado con ID:', docRef.id);
-    res.send('Datos recibidos y guardados en Firebase');
+    res.send('Datos guardados en Firebase');
   } catch (error) {
-    console.error('Error guardando en Firestore:', error);
-    res.status(500).send('Error guardando datos');
+    console.error('Error guardando datos:', error);
+    res.status(500).send('Error en el servidor');
   }
 });
 
-app.listen(PORT, HOST, () => {
-  console.log(`Servidor escuchando en http://${HOST}:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en http://localhost:${PORT}`);
 });
